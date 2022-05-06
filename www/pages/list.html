@@ -1,0 +1,35 @@
+<template>
+  <div class="page">
+    <div class="navbar">
+      <div class="navbar-bg"></div>
+      <div class="navbar-inner sliding">
+        <div class="title">書籍一覧</div>
+      </div>
+    </div>
+    <div class="page-content">
+      <div class="list links-list">
+        <ul>
+          ${ comics.map(comic => $h`
+            <li><a href="/comics/${comic.key}?title=${comic.title}">${comic.title}</a></li>
+          `)}
+        </ul>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+  export default (props, { $f7route, $store, $onMounted, $update }) => {
+    let comics = [];
+    // DOMがマウントされたタイミングで実行
+    $onMounted(async () => {
+      // コミックデータを取得する
+      const Comic = ncmb.DataStore('Comic');
+      comics = await Comic
+        .order('title')
+        .fetchAll();
+      // 取得したら表示更新
+      $update();
+    });
+    return $render;
+  };
+</script>

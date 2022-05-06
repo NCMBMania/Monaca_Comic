@@ -1,0 +1,79 @@
+<template>
+  <div class="page">
+    <div class="navbar">
+      <div class="navbar-bg"></div>
+      <div class="navbar-inner sliding">
+        <div class="left">
+          <a href="#" class="link back">
+            <i class="icon icon-back"></i>
+            <span class="if-not-md">戻る</span>
+          </a>
+        </div>
+        <div class="title">${ title }</div>
+      </div>
+    </div>
+    <div class="page-content">
+			<div class="laymic" data-viewer-id="laymic">
+				${ pages.map(page => $h`
+					<img data-src="${page}" />
+				`)}
+			</div>
+		</div>
+  </div>
+</template>
+<script>
+  export default (props, { $f7route, $on, $f7router, $update, $tick }) => {
+		const { key } = props;
+		const { title }  = $f7route.query;
+		let pages = [];
+		// 画面を表示する前に実行されるイベント
+    $on('page:beforein', async () => {
+			// ローディング表示
+			app.preloader.show();
+			// ファイルストアのデータを取得
+			const blobs = await getPage();
+			// ファイルストアのデータをblob形式に変換
+			pages = blobs.map(p => URL.createObjectURL(p));
+			// 表示更新
+			$update();
+			// 描画完了を待つ
+			await $tick();
+			showLaymic();
+			// ローディングを消す
+			app.preloader.hide();
+    });
+
+		// 電子書籍を表示する処理
+		const showLaymic = () => {
+			// Laymicの表示
+			const applicator = new laymic.LaymicApplicator(".laymic", {
+				pageWidth: 690,
+				pageHeight: 976,
+			});
+			applicator.open('laymic');
+			// Framework7自体を一旦隠す
+			app.el.style.display = 'none';
+			// 電子書籍を閉じる際にFramework7を表示する
+			$('.laymic_close').on('click', e => {
+				app.el.style.display = 'block';
+				// 一覧ページに戻る
+				$f7router.back();
+			});
+		}
+
+		// ファイルストアからデータを取得する関数
+		const getPage = async () => {
+			// ファイル名のキーで検索
+			const files = await ncmb.File
+				.regularExpressionTo('fileName', `^${key}.*`)
+				.order('fileName', false)
+				.fetchAll();
+			// 写真データをblob形式でダウンロード
+			const promises = files.map(f => ncmb.File.download(f.fileName, 'blob'));
+			// Promiseで処理を返す
+			return Promise.all(promises);
+		};
+
+    return $render;
+  };
+</script>
